@@ -1,180 +1,260 @@
-# InShort News Backend
+# InShort News Backend - On-Premise Docker Solution
 
-A modern, high-performance news aggregation and personalization backend service built with TypeScript, Fastify, and Prisma. The architecture is language-agnostic and can be implemented in any backend stack.
+A modern, high-performance news aggregation and personalization backend service built with TypeScript, Fastify, and Prisma. This version provides a complete **on-premise solution** with containerized PostgreSQL (with PostGIS and pg_cron) and Redis, requiring minimal external dependencies.
 
 ## 🚀 Tech Stack
 
-Current Implementation:
+**Complete Docker-Based Architecture:**
 - **Runtime**: Node.js with TypeScript
-- **Framework**: Fastify (chosen for its high performance and low overhead)
-- **Database**: PostgreSQL with PostGIS extension
-- **ORM**: Prisma
-- **Caching**: Redis with Geospatial Clustering
-- **AI Integration**: Google Gemini
+- **Framework**: Fastify (high performance, low overhead)
+- **Database**: PostgreSQL 17 with PostGIS 3.5 and pg_cron (containerized)
+- **ORM**: Prisma with automatic schema deployment
+- **Caching**: Redis with geospatial clustering (containerized)
+- **AI Integration**: Google Gemini API
 - **API Documentation**: Swagger/OpenAPI
 - **Authentication**: JWT
-- **Containerization**: Docker
-
-Note: While this implementation uses Fastify and TypeScript, the architecture is designed to be stack-agnostic. The same project structure, layers, and patterns can be implemented using:
-- Java with Spring Boot
-- Go with Gin/Echo
-- Python with FastAPI
-- Any other modern backend stack
-
-The core architectural principles, folder structure, and separation of concerns remain the same regardless of the implementation language.
+- **Containerization**: Full Docker Compose orchestration
 
 ## 📁 Project Structure
 
 ```
 backend/
-├── prisma/              # Database schema and migrations
+├── docker-compose.yml      # Complete multi-service orchestration
+├── Dockerfile             # Backend service container
+├── Dockerfile.db          # Custom PostgreSQL + PostGIS + pg_cron
+├── init-extensions.sql    # Database extensions initialization
+├── news_data.json         # Sample news data for seeding
+├── prisma/
+│   └── schema.prisma      # Database schema with PostGIS types
 ├── src/
-│   ├── app.ts          # Main application setup
-│   ├── server.ts       # Server initialization
-│   ├── config/         # Configuration management
-│   ├── core/           # Core functionality
-│   │   ├── adapters/   # External service adapters
-│   │   ├── logger/     # Logging setup
-│   │   └── plugins/    # Fastify plugins
-│   ├── modules/        # Feature modules
-│   │   ├── auth/       # Authentication
-│   │   └── news/       # News management
-│   ├── scripts/        # Utility scripts
-│   └── utils/          # Helper functions
+│   ├── app.ts            # Main application setup
+│   ├── server.ts         # Server initialization
+│   ├── config/
+│   │   └── index.ts      # Configuration management
+│   ├── core/
+│   │   ├── adapters/     # External service adapters
+│   │   │   ├── cache/    # Redis adapter with geospatial support
+│   │   │   ├── db/       # Database adapters and Prisma client
+│   │   │   └── llm/      # Google Gemini integration
+│   │   ├── logger/       # Structured logging
+│   │   └── plugins/      # Fastify plugins (Swagger, etc.)
+│   ├── modules/          # Feature modules
+│   │   ├── auth/         # JWT authentication
+│   │   │   ├── auth.controller.ts
+│   │   │   ├── auth.routes.ts
+│   │   │   └── auth.schema.ts
+│   │   └── news/         # News management with geospatial queries
+│   │       ├── news.controller.ts
+│   │       ├── news.repository.ts
+│   │       ├── news.routes.ts
+│   │       ├── news.schema.ts
+│   │       ├── news.service.ts
+│   │       └── news.types.ts
+│   ├── scripts/
+│   │   └── seed.ts       # Database seeding with news data
+│   └── utils/
+│       ├── geo.ts        # Geospatial utilities
+│       └── hash.ts       # Password hashing utilities
+└── .env.example          # Environment template
 ```
 
 ## 🔑 Key Features
 
-1. **Geo-Spatial News**: Location-based news filtering using PostGIS
-2. **AI-Powered**: Integration with Google Gemini for content enhancement
-3. **User Authentication**: Secure JWT-based authentication
-4. **Caching**: Redis-based caching for improved performance
-5. **API Documentation**: Auto-generated Swagger documentation
-6. **Event Tracking**: User interaction tracking with geographical data
+### 🌍 **Complete On-Premise Solution**
+- **Zero external database dependencies** - PostgreSQL with PostGIS runs in Docker
+- **Integrated caching** - Redis container included
+- **One-command deployment** - Complete stack with `docker-compose up`
+- **Data persistence** - Volumes for database and cache data
+
+### 🗺️ **Advanced Geospatial Capabilities**
+- **PostGIS-powered** location-based news filtering
+- **Spatial indexing** with GIST indexes for fast geo queries
+- **User event tracking** with geographical coordinates
+- **Proximity-based** content recommendations
+
+### 🤖 **AI Integration**
+- **Google Gemini** for content analysis and categorization
+- **Automated relevance scoring** for articles
+- **Smart content enhancement** and summarization
+
+### ⚡ **Performance Optimizations**
+- **Vector-based search** instead of traditional LIKE queries
+- **pg_cron scheduled jobs** for automated database maintenance
+- **Geospatial clustering** for optimized caching
+- **Redis caching** with spatial indexing support
 
 ## 🛠️ Installation & Setup
 
-### Using Docker (Recommended)
+### Prerequisites
+- Docker and Docker Compose installed
+- Git for cloning the repository
 
-1. Clone the repository:
+### Quick Start (Recommended)
+
+1. **Clone the repository:**
    ```bash
    git clone <repository-url>
-   cd inshortbackend
+   cd inshortbackendfinal/backend
    ```
 
-2. Create `.env` file from example:
+2. **Create environment file:**
    ```bash
    cp .env.example .env
    ```
 
-3. Configure your environment variables in `.env`:
+3. **Configure your environment variables in `.env`:**
    ```env
-   DATABASE_URL="postgresql://user:password@localhost:5432/dbname"
-   DIRECT_URL="postgresql://user:password@localhost:5432/dbname"
-   REDIS_URL="redis://localhost:6379"
-   JWT_SECRET="your-secret-key"
-   GEMINI_API_KEY="your-gemini-api-key"
+   # Only these two keys need to be configured:
+   JWT_SECRET="your-super-secret-jwt-key-change-this-in-production"
+   GEMINI_API_KEY="your-google-gemini-api-key"
+   
+   # Database and Redis are automatically configured via Docker Compose
+   # No need to modify these unless you want custom credentials:
+   # DATABASE_URL and REDIS_URL are set automatically in docker-compose.yml
    ```
 
-4. Run with Docker Compose:
+4. **Start the complete stack:**
    ```bash
    docker-compose up --build
    ```
 
-### Manual Setup
+That's it! 🎉 The entire system will be running with:
+- **Backend API**: http://localhost:3000
+- **API Documentation**: http://localhost:3000/docs
+- **PostgreSQL**: localhost:5432 (user: myuser, password: mypassword, db: mydatabase)
+- **Redis**: localhost:6379
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
+## 🐳 Docker Services
 
-2. Set up the database:
-   ```bash
-   npx prisma generate
-   npx prisma db push
-   ```
+The `docker-compose.yml` orchestrates three services:
 
-3. Seed the database:
-   ```bash
-   npm run seed
-   ```
+### 1. **Database Service (`db`)**
+- **Custom PostgreSQL 17** with PostGIS 3.5 and pg_cron
+- **Automated extensions** installation on first run
+- **Health checks** to ensure proper startup sequence
+- **Persistent data** via Docker volumes
 
-4. Start the development server:
-   ```bash
-   npm run dev
-   ```
+### 2. **Cache Service (`cache`)**
+- **Redis 8.2** with additional modules (RedisBloom, RedisSearch, etc.)
+- **Ready for geospatial** clustering and advanced caching
+- **High-performance** in-memory operations
+
+### 3. **Backend Service (`backend`)**
+- **TypeScript/Node.js** application
+- **Automatic Prisma** client generation and schema deployment
+- **Database seeding** with sample news data
+- **Health-dependent startup** (waits for database to be ready)
 
 ## 📚 API Documentation
 
-Once the server is running, access the Swagger documentation at:
-- http://localhost:3000/docs
+Once the system is running, access the interactive Swagger documentation:
+- **Swagger UI**: http://localhost:3000/docs
+- **OpenAPI Spec**: http://localhost:3000/docs/json
 
-## 📄 Key Files Description
+## � Available Commands
 
-- `src/app.ts`: Main application configuration, middleware setup, and plugin registration
-- `src/server.ts`: Server initialization and startup logic
-- `prisma/schema.prisma`: Database schema definition with PostGIS extensions
-- `src/modules/news/news.service.ts`: Core news service logic including geo-spatial queries
-- `src/modules/auth/auth.controller.ts`: Authentication and user management
-- `src/core/adapters/llm/gemini.provider.ts`: Google Gemini AI integration
-- `src/core/adapters/cache/redis.adapter.ts`: Redis caching implementation
-- `src/scripts/seed.ts`: Database seeding script for initial data
+### Docker Commands (Primary)
+```bash
+# Start the complete stack
+docker-compose up --build
 
-## 🔄 Available Scripts
+# Start in background (detached mode)
+docker-compose up -d --build
 
-- `npm run dev`: Start development server with hot reload
-- `npm run build`: Build the TypeScript project
-- `npm start`: Start production server
-- `npm run seed`: Run database seeding script
+# Stop all services
+docker-compose down
+
+# Stop and remove volumes (clean slate)
+docker-compose down -v
+
+# View logs
+docker-compose logs -f backend
+```
+
+### Development Commands (Optional)
+If you want to develop without Docker:
+```bash
+npm install          # Install dependencies
+npm run dev          # Development with hot reload
+npm run build        # Build TypeScript
+npm start           # Production start
+npm run seed        # Manual database seeding
+```
+
+## � Database Features
+
+### **Automatic Setup**
+- **Schema deployment** via Prisma on container startup
+- **Extensions installation** (PostGIS, pg_cron) automatically
+- **Sample data seeding** from `news_data.json`
+- **No manual migration** required
+
+### **Advanced Capabilities**
+```sql
+-- Geospatial queries supported out of the box
+SELECT * FROM "Article" 
+WHERE ST_DWithin(location, ST_SetSRID(ST_MakePoint(lng, lat), 4326)::geography, 1000);
+
+-- Automated jobs via pg_cron
+SELECT cron.schedule('cleanup-old-events', '0 2 * * *', 
+  'DELETE FROM "UserEvent" WHERE "createdAt" < NOW() - INTERVAL ''30 days'';');
+```
+
+### **Data Models**
+- **Users**: Authentication with hashed passwords
+- **Articles**: News with geospatial coordinates and full-text search
+- **UserEvents**: Interaction tracking with location data
+
+## � Configuration
+
+### **Environment Variables**
+Only two variables need manual configuration:
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `JWT_SECRET` | Secret key for JWT token signing | ✅ Yes |
+| `GEMINI_API_KEY` | Google Gemini API key for AI features | ✅ Yes |
+
+All other variables (database, Redis URLs) are automatically configured via Docker Compose.
+
+### **Docker Compose Configuration**
+The system automatically configures:
+- **Database connection**: `postgresql://myuser:mypassword@db:5432/mydatabase`
+- **Redis connection**: `redis://cache:6379`
+- **Service dependencies**: Backend waits for healthy database
+- **Port mapping**: API on 3000, DB on 5432, Redis on 6379
 
 ## 🚀 Production Deployment
 
-The project includes a `render.yaml` configuration for easy deployment on Render.com. Make sure to:
+For production deployment:
 
-1. Set up all required environment variables in your production environment
-2. Ensure PostgreSQL instance has PostGIS extension enabled
-3. Configure Redis instance for caching
-4. Set up proper security measures (rate limiting, CORS, etc.)
+1. **Update credentials** in docker-compose.yml (database passwords, etc.)
+2. **Set strong JWT_SECRET** in .env file
+3. **Configure reverse proxy** (nginx, Traefik) for HTTPS
+4. **Set up backups** for the postgres_data volume
+5. **Monitor logs** and set up log rotation
 
-## 📝 Environment Variables
+## ✨ Key Advantages
 
-Required environment variables:
-- `DATABASE_URL`: PostgreSQL connection string
-- `DIRECT_URL`: Direct PostgreSQL connection (for Prisma)
-- `REDIS_URL`: Redis connection string
-- `JWT_SECRET`: Secret key for JWT tokens
-- `GEMINI_API_KEY`: Google Gemini API key
-- `PORT`: Server port (default: 3000)
+### **🏠 Complete On-Premise Solution**
+- No external database or cache services required
+- Full control over your data and infrastructure
+- Reduced operational costs and dependencies
 
-## 📈 Features in Detail
+### **🔧 Zero Configuration**
+- Pre-configured database with all required extensions
+- Automatic service orchestration and health checks
+- Sample data included for immediate testing
 
-### Database Optimizations
-- Vector-based search implementation instead of traditional LIKE queries for superior performance
-- Heavy calculations offloaded to database using materialized views and pg_cron
-- PostGIS spatial indexing for location-based queries
-- Automated view refreshes using pg_cron for maintaining data freshness
+### **📈 Production Ready**
+- Optimized PostgreSQL with PostGIS for geospatial queries
+- Redis caching with advanced modules
+- Comprehensive logging and health monitoring
+- Scalable architecture with container orchestration
 
-### Geo-Spatial Capabilities
-- News articles are tagged with geographical coordinates
-- User events are tracked with location data
-- Proximity-based news recommendations
-- PostGIS spatial queries for efficient location-based filtering
-- Geospatial clustering for optimized caching and content delivery
-
-### Caching Strategy
-- Geospatial cluster-based caching for location-aware content delivery
-- Redis caching with spatial index support
-- Cached user preferences and authentication tokens
-- Optimized query results caching
-- Hierarchical caching based on geographical regions
-
-### AI Integration
-- Google Gemini for content analysis
-- Smart news categorization
-- Relevance scoring for articles
-
-### Security Features
-- JWT-based authentication
-- Password hashing with bcrypt
-- Rate limiting and CORS protection
+### **🛠️ Developer Friendly**
+- Hot reload for development
+- Interactive API documentation
+- Comprehensive error handling and logging
+- Type-safe development with TypeScript and Prisma
 
