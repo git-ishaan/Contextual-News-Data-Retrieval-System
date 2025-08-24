@@ -10,7 +10,7 @@
  * @param precision - The number of decimal places to round to.
  * @returns A string in the format "lat_rounded:lon_rounded".
  */
-export function getGeospatialCacheKey(lat: number, lon: number, precision: number = 2): string {
+export function getGeospatialCacheKey(lat: number, lon: number, precision: number = 0): string {
   const latFixed = lat.toFixed(precision);
   const lonFixed = lon.toFixed(precision);
   return `${latFixed}:${lonFixed}`;

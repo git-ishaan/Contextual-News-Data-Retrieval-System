@@ -100,18 +100,21 @@ class NewsRepository implements INewsRepository {
     return { articles, total };
   }
   
-  // Get trending articles, ranked by distance and trending score
-  async findTrending(lat: number, lon: number, limit: number): Promise<Article[]> {
-    return prisma.$queryRaw<Article[]>`
-      SELECT
-        id, title, description, url, publication_date, source_name, category, relevance_score, latitude, longitude
-      FROM "TrendingArticles"
-      ORDER BY
-        location <-> ST_SetSRID(ST_MakePoint(${lon}, ${lat}), 4326)::geography,
-        trending_score DESC
-      LIMIT ${limit};
-    `;
-  }
+    // Get trending articles, using a blended score of popularity and distance
+async findTrending(lat: number, lon: number, limit: number): Promise<Article[]> {
+  return prisma.$queryRaw<Article[]>`
+    WITH user_location AS (
+      SELECT ST_SetSRID(ST_MakePoint(${lon}, ${lat}), 4326)::geography AS point
+    )
+    SELECT
+      id, title, description, url, publication_date, source_name, category, relevance_score, latitude, longitude
+    FROM "TrendingArticles", user_location
+    ORDER BY
+      -- The Blended Score Calculation:
+      trending_score * EXP(-ST_Distance(location, user_location.point) / 50000) DESC
+    LIMIT ${limit};
+  `;
+}
 
   // Find nearby articles matching keywords
   async findNearbyWithKeywords({ lat, lon, radiusInMeters }: FindNearbyParams, keywords: string[]): Promise<Article[]> {
