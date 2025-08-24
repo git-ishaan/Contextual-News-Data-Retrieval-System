@@ -1,26 +1,25 @@
-# Install dependencies
-FROM node:20-alpine AS deps
-RUN apk add --no-cache libc6-compat
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
+# Base Image
+FROM node:22-alpine
 
-# Build the application
-FROM node:20-alpine AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+# Set working directory
+WORKDIR /usr/src/app
+
+# Copy package files and install dependencies
+COPY package*.json ./
+RUN npm install
+
+# Copy Prisma schema and generate client
+COPY prisma ./prisma/
 RUN npx prisma generate
+
+# Copy the rest of your application's source code
+COPY . .
+
+# Build the TypeScript code
 RUN npm run build
 
-# Production image
-FROM node:20-alpine AS runner
-WORKDIR /app
-ENV NODE_ENV=production
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY package.json .
-COPY --from=builder /app/prisma ./prisma
-
+# Expose the port the app runs on
 EXPOSE 3000
-CMD ["node", "dist/server.js"]
+
+# Command to run the application
+CMD ["npm", "start"]

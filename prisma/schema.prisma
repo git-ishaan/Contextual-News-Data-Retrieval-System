@@ -1,20 +1,23 @@
-  generator client {
-    provider = "prisma-client-js"
-  }
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-  datasource db {
-    provider  = "postgresql"
-    url       = env("DATABASE_URL")
-    directUrl = env("DIRECT_URL")
-  }
+generator client {
+  provider = "prisma-client-js"
+}
 
-  model User {
-    id        String   @id @default(uuid())
-    username  String   @unique
-    password  String
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-  }
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
 
 model Article {
   id               String      @id @default(uuid())
@@ -29,23 +32,48 @@ model Article {
   longitude        Float
   location         Unsupported("geography(Point, 4326)")?
   userEvents       UserEvent[]
-  
-  
+
+  // This column is managed by the database trigger, not by the application.
   search_vector    Unsupported("tsvector")?
+
   @@index([location], name: "location_idx", type: Gist)
-  @@index([search_vector], type: Gin) 
+  @@index([search_vector], name: "Article_search_vector_idx", type: Gin)
 }
 
-  model UserEvent {
-    id         String   @id @default(uuid())
-    eventType  String // "view" or "click"
-    createdAt  DateTime @default(now())
-    articleId  String
-    article    Article  @relation(fields: [articleId], references: [id])
-    userId     String
-    latitude   Float
-    longitude  Float
-    location   Unsupported("geography(Point, 4326)")? // PostGIS native type
+model UserEvent {
+  id        String   @id @default(uuid())
+  eventType String // "view" or "click"
+  createdAt DateTime @default(now())
+  articleId String
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  userId    String
+  latitude  Float
+  longitude Float
+  location  Unsupported("geography(Point, 4326)")? // PostGIS native type
 
-    @@index([location], name: "event_location_idx", type: Gist)
-  }
+  @@index([location], name: "event_location_idx", type: Gist)
+}
+
+// =============================================================================
+// MODEL FOR THE MATERIALIZED VIEW
+// =============================================================================
+// This model represents the structure of your "TrendingArticles" materialized view.
+// Prisma will NOT create this as a table. You must create the view yourself
+// in a raw SQL migration. This model allows you to QUERY the view with Prisma Client.
+// model TrendingArticles {
+//   id               String   @id @db.Uuid
+//   title            String
+//   description      String
+//   url              String
+//   publication_date DateTime
+//   source_name      String
+//   category         String[]
+//   relevance_score  Float
+//   latitude         Float
+//   longitude        Float
+//   location         Unsupported("geography(Point, 4326)")?
+//   trending_score   Float
+
+//   // Tell Prisma that this model maps to a 'view' not a 'table'.
+//   @@map("TrendingArticles")
+// }

@@ -100,7 +100,7 @@ class NewsRepository implements INewsRepository {
     return { articles, total };
   }
   
-    // Get trending articles, using a blended score of popularity and distance
+  // Get trending articles, using a blended score of popularity and distance
 async findTrending(lat: number, lon: number, limit: number): Promise<Article[]> {
   return prisma.$queryRaw<Article[]>`
     WITH user_location AS (

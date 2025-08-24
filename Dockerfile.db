@@ -1,0 +1,11 @@
+# Use PostGIS as base image (includes PostgreSQL + PostGIS)
+FROM postgis/postgis:17-3.5
+
+# Install pg_cron extension
+RUN apt-get update && apt-get install -y \
+    postgresql-17-cron \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy custom initialization script
+COPY init-extensions.sql /docker-entrypoint-initdb.d/01-init-extensions.sql
+COPY news_data.json /docker-entrypoint-initdb.d/news_data.json

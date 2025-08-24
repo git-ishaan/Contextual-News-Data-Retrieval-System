@@ -1,12 +1,82 @@
-version: '3.8'
 
+# This section defines all the services (containers) that make up your application.
 services:
-  app:
+  # 1. The PostgreSQL Database Service with PostGIS and pg_cron
+  db:
+    build:
+      context: .
+      dockerfile: Dockerfile.db
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: mydatabase
+      # Enable shared_preload_libraries for pg_cron
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    ports:
+      # Exposes the database on your local machine at port 5432 for easy debugging.
+      - "5432:5432"
+    volumes:
+      # This ensures your database data persists even if the container is removed.
+      - postgres_data:/var/lib/postgresql/data
+    command: 
+      - "postgres"
+      - "-c"
+      - "shared_preload_libraries=pg_cron"
+      - "-c"
+      - "cron.database_name=mydatabase"
+      - "-c"
+      - "cron.host=/var/run/postgresql" 
+      - "-c"
+      - "log_statement=all"
+    healthcheck:
+      # This command checks if the database is ready to accept connections.
+      # The backend service will wait for this check to pass before starting.
+      test: ["CMD-SHELL", "pg_isready -U myuser -d mydatabase"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 2. The Redis Cache Service
+  cache:
+    image: redis:alpine
+    container_name: redis_cache
+    ports:
+      # Exposes Redis on your local machine at port 6379.
+      - "6379:6379"
+
+  # 3. Your Backend API Service
+  backend:
+    # Builds the Docker image from the Dockerfile in the current directory.
     build: .
+    container_name: backend_api
     ports:
       - "3000:3000"
+    depends_on:
+      # This is the key for automatic setup!
+      # It tells Docker to wait until the `db` service is healthy (passes the healthcheck)
+      # and the `cache` service has started before starting the backend.
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_started
     env_file:
+      # Loads your external secrets (like API keys) from a .env file.
       - .env
-    volumes:
-      - ./src:/app/src
-    command: npm run dev
+    environment:
+      # These variables are used for inter-container communication.
+      # They override any matching variables in your .env file.
+
+      DATABASE_URL: "postgresql://myuser:mypassword@db:5432/mydatabase"
+      DIRECT_URL: "postgresql://myuser:mypassword@db:5432/mydatabase"
+      REDIS_URL: "redis://cache:6379"
+      PORT: 3000
+    command: >
+      sh -c "echo 'Waiting for DB to be ready...' &&
+             npx prisma generate &&
+             echo 'Prisma client generated.' &&
+             npm start"
+
+# This defines the named volume used by the `db` service for data persistence.
+volumes:
+  postgres_data:
