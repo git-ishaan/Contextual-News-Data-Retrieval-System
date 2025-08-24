@@ -15,6 +15,15 @@ A modern, high-performance news aggregation and personalization backend service 
 - **Authentication**: JWT
 - **Containerization**: Full Docker Compose orchestration
 
+Note: While this implementation uses Fastify and TypeScript, the architecture is designed to be stack-agnostic. The same project structure, layers, and patterns can be implemented using:
+- Java with Spring Boot
+- Go with Gin/Echo
+- Python with FastAPI
+- Any other modern backend stack
+
+The core architectural principles, folder structure, and separation of concerns remain the same regardless of the implementation language.
+
+
 ## 📁 Project Structure
 
 ```
@@ -289,5 +298,6 @@ For production deployment:
 - Interactive API documentation
 - Comprehensive error handling and logging
 - Type-safe development with TypeScript and Prisma
+
 
 
