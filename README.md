@@ -15,6 +15,17 @@ A modern, high-performance news aggregation and personalization backend service 
 - **Authentication**: JWT
 - **Deployment**: Docker with cloud platform integration (Render.com ready)
 
+
+Note: While this implementation uses Fastify and TypeScript, the architecture is designed to be stack-agnostic. The same project structure, layers, and patterns can be implemented using:
+- Java with Spring Boot
+- Go with Gin/Echo
+- Python with FastAPI
+- Any other modern backend stack
+
+The core architectural principles, folder structure, and separation of concerns remain the same regardless of the implementation language.
+
+
+
 ## 📁 Project Structure
 
 ```
@@ -368,5 +379,6 @@ SELECT cron.schedule('cleanup-old-events', '0 2 * * *',
 - JWT-based authentication
 - Password hashing with bcrypt
 - CORS protection
+
 
 
