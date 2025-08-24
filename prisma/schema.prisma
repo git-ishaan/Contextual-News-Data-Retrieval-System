@@ -1,0 +1,51 @@
+  generator client {
+    provider = "prisma-client-js"
+  }
+
+  datasource db {
+    provider  = "postgresql"
+    url       = env("DATABASE_URL")
+    directUrl = env("DIRECT_URL")
+  }
+
+  model User {
+    id        String   @id @default(uuid())
+    username  String   @unique
+    password  String
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+  }
+
+model Article {
+  id               String      @id @default(uuid())
+  title            String
+  description      String
+  url              String      @unique
+  publication_date DateTime
+  source_name      String
+  category         String[]
+  relevance_score  Float
+  latitude         Float
+  longitude        Float
+  location         Unsupported("geography(Point, 4326)")?
+  userEvents       UserEvent[]
+  
+  
+  search_vector    Unsupported("tsvector")?
+  @@index([location], name: "location_idx", type: Gist)
+  @@index([search_vector], type: Gin) 
+}
+
+  model UserEvent {
+    id         String   @id @default(uuid())
+    eventType  String // "view" or "click"
+    createdAt  DateTime @default(now())
+    articleId  String
+    article    Article  @relation(fields: [articleId], references: [id])
+    userId     String
+    latitude   Float
+    longitude  Float
+    location   Unsupported("geography(Point, 4326)")? // PostGIS native type
+
+    @@index([location], name: "event_location_idx", type: Gist)
+  }
